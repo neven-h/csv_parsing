@@ -34,3 +34,6 @@ __pycache__/
 # Generated outputs (also these exact names)
 normalized.csv
 report.json
+
+# Local scaffolding scripts (not part of the project)
+scaffold_*.sh
