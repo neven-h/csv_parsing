@@ -13,3 +13,24 @@ __pycache__/
 __pycache__/
 *.pyc
 .venv/
+
+# IDE
+.idea/
+
+# Real bank exports (do not commit)
+data/*.csv
+
+# Generated outputs (do not commit)
+normalized_*.csv
+report_*.json
+
+# Optional: python cache
+__pycache__/
+*.pyc
+
+# PyCharm
+.idea/
+
+# Generated outputs (also these exact names)
+normalized.csv
+report.json

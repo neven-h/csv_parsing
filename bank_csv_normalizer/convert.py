@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, List
+import io
+from typing import Optional, List, Tuple
+
+import pandas as pd
 
 from bank_csv_normalizer.normalize.io import load_csv
 from bank_csv_normalizer.detect import detect_profile
@@ -18,10 +21,11 @@ def _get_profile_by_name(name: str):
     return None
 
 
-def convert(input_path: str, output_path: str, report_path: Optional[str] = None) -> ConversionReport:
-    load_res = load_csv(input_path)
-    df = load_res.df
-
+def convert_df(df: pd.DataFrame) -> Tuple[pd.DataFrame, ConversionReport]:
+    """
+    Core conversion from a parsed bank dataframe -> canonical dataframe + report.
+    Works for both CLI and web uploads.
+    """
     match = detect_profile(df)
     profile = _get_profile_by_name(match.name)
 
@@ -30,11 +34,9 @@ def convert(input_path: str, output_path: str, report_path: Optional[str] = None
         raise ValueError(f"No profile found for detected name '{match.name}'. Reasons: {match.reasons}")
 
     canonical = profile.extract_canonical(df)
-
     rows_in = len(df)
 
     canonical = canonical[CANONICAL_COLS].copy()
-
     canonical["account_number"] = canonical["account_number"].fillna("").astype(str).str.strip()
     canonical["description"] = canonical["description"].fillna("").astype(str).str.strip()
     canonical["transaction_date"] = canonical["transaction_date"].fillna("").astype(str).str.strip()
@@ -57,9 +59,6 @@ def convert(input_path: str, output_path: str, report_path: Optional[str] = None
         warnings.append(f"Dropped {dropped} rows missing required canonical fields after parsing.")
     canonical = canonical[required_mask]
 
-    canonical = canonical[CANONICAL_COLS]
-    canonical.to_csv(output_path, index=False, encoding="utf-8")
-
     rep = ConversionReport(
         profile=match.name,
         confidence=match.confidence,
@@ -68,6 +67,28 @@ def convert(input_path: str, output_path: str, report_path: Optional[str] = None
         dropped_rows=(rows_in - len(canonical)) if rows_in >= len(canonical) else dropped,
         warnings=warnings + match.reasons,
     )
+    return canonical[CANONICAL_COLS], rep
+
+
+def canonical_to_csv_bytes(df: pd.DataFrame, encoding: str = "utf-8-sig") -> bytes:
+    """
+    Export canonical dataframe as CSV bytes.
+    Default utf-8-sig is best for Hebrew + Excel compatibility.
+    """
+    buf = io.StringIO()
+    df.to_csv(buf, index=False)
+    return buf.getvalue().encode(encoding)
+
+
+def convert(input_path: str, output_path: str, report_path: Optional[str] = None) -> ConversionReport:
+    """
+    Existing CLI-friendly API: reads CSV from disk and writes canonical CSV to disk.
+    """
+    load_res = load_csv(input_path)
+    canonical, rep = convert_df(load_res.df)
+
+    # Use utf-8-sig to be safest for uploads/downloads
+    canonical.to_csv(output_path, index=False, encoding="utf-8-sig")
 
     if report_path:
         with open(report_path, "w", encoding="utf-8") as f:
