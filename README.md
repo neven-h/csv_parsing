@@ -13,5 +13,6 @@ Key features
 	•	Produces a JSON report (rows in/out, dropped rows, warnings)
 
 
-''python -m bank_csv_normalizer.cli detect path/to/input.csv''
-''python -m bank_csv_normalizer.cli convert path/to/input.csv --out normalized.csv --report report.json''
+```bash
+python -m bank_csv_normalizer.cli detect path/to/input.csv
+python -m bank_csv_normalizer.cli convert path/to/input.csv --out normalized.csv --report report.json
