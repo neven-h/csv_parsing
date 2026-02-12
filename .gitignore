@@ -37,3 +37,6 @@ report.json
 
 # Local scaffolding scripts (not part of the project)
 scaffold_*.sh
+
+# python build artifacts
+*.egg-info/
