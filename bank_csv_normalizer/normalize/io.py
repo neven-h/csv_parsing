@@ -127,12 +127,48 @@ def _find_header_row(text: str, delimiter: str, min_columns: int = 4) -> int:
     return best_idx
 
 
-def load_excel(path: str, sheet: int = 0, header_row: int = 3) -> LoadResult:
+_EXCEL_HEADER_KEYWORDS = [
+    "תאריך", "סכום", "תיאור", "תאור", "פרטים", "עסקה", "פעולה",
+    "שם בית עסק", "בית עסק", "אסמכתא", "חובה", "זכות", "מטבע",
+    "מספר חשבון", "יתרה", "כרטיס",
+    "date", "amount", "description", "details", "transaction",
+    "currency", "account", "balance",
+]
+
+
+def _find_excel_header_row(path: str, sheet: int = 0, max_scan: int = 30) -> int:
+    """
+    Scan the first ``max_scan`` rows of an Excel sheet (reading without a
+    header) and return the 0-indexed row that looks most like a header.
+
+    Scoring: keyword hits × 10 + number of non-empty cells.
+    """
+    raw = pd.read_excel(path, sheet_name=sheet, header=None, dtype=str, nrows=max_scan)
+
+    best_idx = 0
+    best_score = -1
+
+    for i, row in raw.iterrows():
+        cells = [str(c).strip() for c in row if pd.notna(c) and str(c).strip() not in ("", "nan")]
+        if not cells:
+            continue
+        joined = " ".join(cells).lower()
+        kw_hits = sum(1 for kw in _EXCEL_HEADER_KEYWORDS if kw.lower() in joined)
+        score = kw_hits * 10 + len(cells)
+        if score > best_score:
+            best_score = score
+            best_idx = int(i)
+
+    return best_idx
+
+
+def load_excel(path: str, sheet: int = 0, header_row: int | None = None) -> LoadResult:
     """
     Load a bank Excel export (.xlsx / .xls) into a LoadResult.
 
     ``header_row`` (0-indexed) is the row that contains column names.
-    Rows above it are treated as preamble and skipped via ``skiprows``.
+    If ``None`` (default), the header row is auto-detected by scanning for
+    bank-domain keywords.
 
     Returns a LoadResult with:
       - df        : DataFrame with header row as columns, dtype=str
@@ -141,6 +177,9 @@ def load_excel(path: str, sheet: int = 0, header_row: int = 3) -> LoadResult:
       - header_row_index : the row index used as header
       - raw_text_preview : first 20 rows as repr string
     """
+    if header_row is None:
+        header_row = _find_excel_header_row(path, sheet=sheet)
+
     df = pd.read_excel(
         path,
         sheet_name=sheet,

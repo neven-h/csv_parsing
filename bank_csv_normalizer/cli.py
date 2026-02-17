@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 from bank_csv_normalizer.convert import convert
-from bank_csv_normalizer.normalize.io import load_csv
+from bank_csv_normalizer.normalize.io import load_csv, load_excel
 from bank_csv_normalizer.detect import detect_profile
 
 
