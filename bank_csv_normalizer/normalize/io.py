@@ -127,6 +127,42 @@ def _find_header_row(text: str, delimiter: str, min_columns: int = 4) -> int:
     return best_idx
 
 
+def load_excel(path: str, sheet: int = 0, header_row: int = 3) -> LoadResult:
+    """
+    Load a bank Excel export (.xlsx / .xls) into a LoadResult.
+
+    ``header_row`` (0-indexed) is the row that contains column names.
+    Rows above it are treated as preamble and skipped via ``skiprows``.
+
+    Returns a LoadResult with:
+      - df        : DataFrame with header row as columns, dtype=str
+      - encoding  : always "xlsx" (binary, no encoding needed)
+      - delimiter : always "" (not applicable)
+      - header_row_index : the row index used as header
+      - raw_text_preview : first 20 rows as repr string
+    """
+    df = pd.read_excel(
+        path,
+        sheet_name=sheet,
+        header=header_row,
+        dtype=str,
+    )
+    # Strip whitespace from column names
+    df.columns = [str(c).strip() for c in df.columns]
+    # Drop completely empty rows
+    df = df.dropna(how="all").reset_index(drop=True)
+
+    preview = df.head(20).to_string()
+
+    return LoadResult(
+        df=df,
+        encoding="xlsx",
+        delimiter="",
+        header_row_index=header_row,
+        raw_text_preview=preview,
+    )
+
+
 def load_csv(path: str) -> LoadResult:
     with open(path, "rb") as f:
         data = f.read()
