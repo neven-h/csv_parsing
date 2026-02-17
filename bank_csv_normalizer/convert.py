@@ -48,9 +48,9 @@ def convert_df(df: pd.DataFrame) -> Tuple[pd.DataFrame, ConversionReport]:
         warnings.append(f"Removed {int(mask_total.sum())} total/footer rows by marker match.")
         canonical = canonical[~mask_total]
 
+    # account_number is optional — a profile may not have per-row account info
     required_mask = (
-        (canonical["account_number"] != "")
-        & (canonical["transaction_date"] != "")
+        (canonical["transaction_date"] != "")
         & (canonical["description"] != "")
         & (canonical["amount"] != "")
     )
