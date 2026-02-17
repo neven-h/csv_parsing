@@ -5,7 +5,7 @@ from typing import Optional, List, Tuple
 
 import pandas as pd
 
-from bank_csv_normalizer.normalize.io import load_csv
+from bank_csv_normalizer.normalize.io import load_csv, load_excel
 from bank_csv_normalizer.detect import detect_profile
 from bank_csv_normalizer.profiles import ALL_PROFILES
 from bank_csv_normalizer.report import ConversionReport
@@ -82,9 +82,12 @@ def canonical_to_csv_bytes(df: pd.DataFrame, encoding: str = "utf-8-sig") -> byt
 
 def convert(input_path: str, output_path: str, report_path: Optional[str] = None) -> ConversionReport:
     """
-    Existing CLI-friendly API: reads CSV from disk and writes canonical CSV to disk.
+    CLI-friendly API: reads a CSV or Excel file from disk and writes canonical CSV to disk.
     """
-    load_res = load_csv(input_path)
+    if input_path.lower().endswith((".xlsx", ".xls")):
+        load_res = load_excel(input_path)
+    else:
+        load_res = load_csv(input_path)
     canonical, rep = convert_df(load_res.df)
 
     # Use utf-8-sig to be safest for uploads/downloads
